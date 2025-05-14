@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Webcam Face Recognition</title>
+</head>
+<body>
+  <video id="video" width="640" height="480" autoplay></video>
+  <h1 id="roll"></h1>
+
+  <button id="start">Start</button>
+  <button id="stop">Stop</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    let intervalId; // Variable to store the interval ID
+
+    function capture() {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then((stream) => {
+          const video = document.getElementById("video");
+          video.srcObject = stream;
+
+          // Start capturing images every 5 seconds
+          intervalId = setInterval(() => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert the image to a data URL
+            const dataUrl = canvas.toDataURL("image/jpeg");
+
+            // Send the data URL to the server using Axios
+            axios.post("http://localhost:3000/check-face", { image: dataUrl })
+              .then((response) => {
+                console.log("Recognition result:", response.data.msg._label);
+                document.getElementById("roll").innerHTML = response.data.msg._label;
+                // Handle recognition result as needed
+              })
+              .catch((error) => {
+                console.error("Error sending image to server:", error);
+              });
+          }, 1000); // Send an image every 5 seconds
+        })
+        .catch((error) => {
+          console.error("Error accessing webcam:", error);
+        });
+    }
+
+    function stopCapture() {
+      clearInterval(intervalId); // Stop the interval
+    }
+
+    document.getElementById("start").addEventListener("click", capture);
+    document.getElementById("stop").addEventListener("click", stopCapture);
+  </script>
+</body>
+</html>
